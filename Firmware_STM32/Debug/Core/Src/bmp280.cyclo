@@ -1,0 +1,2 @@
+../Core/Src/bmp280.c:8:9:BMP280_ReadID	3
+../Core/Src/bmp280.c:32:6:BMP280_Init	2
