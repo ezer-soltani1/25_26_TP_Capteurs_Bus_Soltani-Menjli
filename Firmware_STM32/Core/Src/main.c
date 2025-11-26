@@ -73,12 +73,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+  float temperature, pressure;
   /* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -98,7 +95,9 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   printf("---Test UART2---\r\n");
-  BMP280_Init(); // Initialize and test BMP280
+  HAL_Delay(500);
+  BMP280_Init();
+  HAL_Delay(500);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,8 +105,10 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
+	BMP280_ReadTemperaturePressure(&temperature, &pressure);
+	printf("Temp: %.2f C, Press: %.2f Pa\r\n", temperature, pressure);
+	HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
