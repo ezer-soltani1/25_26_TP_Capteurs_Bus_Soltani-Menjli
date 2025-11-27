@@ -64,7 +64,7 @@ void BMP280_ReadTemperaturePressure(float *temp, float *press)
     p = 1048576 - adc_P;
     p = (((p << 31) - p_var2) * 3125) / p_var1;
 
-    p_var1 = (((int64_t)calibData.dig_P9) * (p >> 13) * (p >> 13)) >> 25;
+    p_var1 = (((int64_t)calibData.dig_P9) * (p >> 13) * (p >> 13)) >> 25; 
     p_var2 = (((int64_t)calibData.dig_P8) * p) >> 19;
 
     p = ((p + p_var1 + p_var2) >> 8) + (((int64_t)calibData.dig_P7) << 4);
@@ -74,6 +74,4 @@ void BMP280_ReadTemperaturePressure(float *temp, float *press)
 ```
 ### Communication I²C
 #### Identification du BMP280
-```c
 
-```
