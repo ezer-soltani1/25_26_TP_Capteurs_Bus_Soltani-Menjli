@@ -91,5 +91,5 @@ void BMP280_Init(void)
 
 **Résultats obtenus après l’interfaçage du capteur BMP280**
 
-![image2](Verification%20du%20configuration.PNG)
+![image2](temp.png)
 
