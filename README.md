@@ -75,3 +75,16 @@ void BMP280_ReadTemperaturePressure(float *temp, float *press)
 ### Communication I²C
 #### Identification du BMP280
 
+```c
+void BMP280_Init(void)
+{
+    uint8_t id = BMP280_ReadID();
+    printf("BMP280 found (ID: 0x%02X). Configuring...\r\n", id);
+    BMP280_ReadCalibration();
+    BMP280_Config();
+}
+```
+
+**Vérification du configuration**
+
+![image2](architecture%20de%20syst%C3%A8me.PNG)
