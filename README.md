@@ -94,3 +94,29 @@ void BMP280_Init(void)
 ![image2](temp.png)
 
 ### Capteur MPU9250 :
+**Fonction de lecture accélerometre MPU9250**
+```c
+void MPU9250_ReadAccel(MPU9250_Data *data)
+{
+    uint8_t rx_data[6];
+    int16_t raw_x, raw_y, raw_z;
+
+    HAL_I2C_Mem_Read(&hi2c1, MPU9250_I2C_ADDR, MPU9250_REG_ACCEL_XOUT_H, 1, rx_data, 6, HAL_MAX_DELAY);
+
+    raw_x = (int16_t)((rx_data[0] << 8) | rx_data[1]);
+    raw_y = (int16_t)((rx_data[2] << 8) | rx_data[3]);
+    raw_z = (int16_t)((rx_data[4] << 8) | rx_data[5]);
+
+    data->Accel_X = raw_x / 16384.0f;
+    data->Accel_Y = raw_y / 16384.0f;
+    data->Accel_Z = raw_z / 16384.0f;
+}
+```
+**Résultat final**
+
+![image3](temp_acc.png)
+
+ ## TP2 : Interfaçage STM32 - Raspberry
+ ### Objectif: Permettre l'interrogation du STM32 via un Raspberry Pi Zero Wifi
+ 
+ ![image4](archtp2.PNG)
