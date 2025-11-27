@@ -114,8 +114,9 @@ void MPU9250_ReadAccel(MPU9250_Data *data)
 ```
 **Résultat final**
 
-![image2](temp_acc.png)
+![image3](temp_acc.png)
 
  ## TP2 : Interfaçage STM32 - Raspberry
  ### Objectif: Permettre l'interrogation du STM32 via un Raspberry Pi Zero Wifi
  
+ ![image4](arch_tp2.png)
