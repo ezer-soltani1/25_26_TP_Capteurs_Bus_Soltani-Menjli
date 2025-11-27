@@ -87,4 +87,9 @@ void BMP280_Init(void)
 
 **Vérification du configuration**
 
-![image2](architecture%20de%20syst%C3%A8me.PNG)
+![image2](Verification%20du%20configuration.PNG)
+
+**Résultats obtenus après l’interfaçage du capteur BMP280**
+
+![image2](Verification%20du%20configuration.PNG)
+
