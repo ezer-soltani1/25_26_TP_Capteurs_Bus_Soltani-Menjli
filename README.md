@@ -1,1 +1,77 @@
 # 25_26_TP_Capteurs_Bus_Soltani-Menjli
+## Réaliser par :
+- Ezer SOLTANI
+- Fakhri MENJLI
+## Objectif de TP:
+mettre en place l'ensemble des composants suivant:
+
+![image1](architecture%20de%20syst%C3%A8me.PNG)
+
+ ## TP 1:Bus I2C
+ ### Capteur BMP280 :
+1. les adresses I²C possibles pour ce composant:
+   * 0x76 : lorsque SDO est connecté à la masse (GND).
+   * 0x77 : lorsque SDO est connecté à la tension d'alimentation (VDD).
+2. le registre et la valeur permettant d'identifier ce composant:
+   * l'adresse 0xD0 et la valeur est 0x58.
+3. le registre et la valeur permettant de placer le composant en mode normal
+   * Le registre ctrl_meas à l'adresse 0xF4 et Les bits doivent être à "11" en Mode normale.
+4. Registres d’étalonnage du composant :
+   * Les valeurs d’étalonnage sont stockées dans les registres calib00 à calib25, correspondant aux adresses mémoire allant de 0x88 à 0xA1.
+5. Registres contenant la température (et leur format) :Les données de température sont réparties sur trois registres :
+   * temp_msb à l’adresse 0xFA : contient les bits 15 à 8,
+   * temp_lsb à l’adresse 0xFB : contient les bits 7 à 0,
+   * temp_xlsb à l’adresse 0xFC : contient les bits 7 à 4   
+6. Registres contenant la pression (et leur format) :Les données de pression sont réparties sur trois registres :
+   * press_msb à l’adresse 0xF7 : contient les bits 15 à 8,
+   * press_lsb à l’adresse 0xF8 : contient les bits 7 à 0,
+   * press_xlsb à l’adresse 0xF9 : contient les bits 7 à 4
+7. les fonctions permettant le calcul de la température et de la pression compensées, en format entier 32 bits:
+
+## Fonction de lecture Température / Pression – BMP280
+
+```c
+void BMP280_ReadTemperaturePressure(float *temp, float *press)
+{
+    uint8_t tx_data = BMP280_REG_PRESS_MSB;
+    uint8_t rx_data[6]; // Press_MSB, Press_LSB, Press_XLSB, Temp_MSB, Temp_LSB, Temp_XLSB
+    int32_t adc_P, adc_T;
+
+    // Read data from 0xF7
+    HAL_I2C_Master_Transmit(&hi2c1, BMP280_I2C_ADDR, &tx_data, 1, HAL_MAX_DELAY);
+    HAL_I2C_Master_Receive(&hi2c1, BMP280_I2C_ADDR, rx_data, 6, HAL_MAX_DELAY);
+
+    adc_P = (rx_data[0] << 12) | (rx_data[1] << 4) | (rx_data[2] >> 4);
+    adc_T = (rx_data[3] << 12) | (rx_data[4] << 4) | (rx_data[5] >> 4);
+
+    // --- Temperature Compensation
+    int32_t var1, var2, T;
+    var1 = ((((adc_T >> 3) - ((int32_t)calibData.dig_T1 << 1))) * ((int32_t)calibData.dig_T2)) >> 11;
+    var2 = (((((adc_T >> 4) - ((int32_t)calibData.dig_T1)) * ((adc_T >> 4) - ((int32_t)calibData.dig_T1))) >> 12) * ((int32_t)calibData.dig_T3)) >> 14;
+    t_fine = var1 + var2;
+    T = (t_fine * 5 + 128) >> 8;
+    *temp = T / 100.0f;
+
+    // --- Pressure Compensation
+    int64_t p_var1, p_var2, p;
+    p_var1 = (int64_t)t_fine - 128000;
+    p_var2 = p_var1 * p_var1 * (int64_t)calibData.dig_P6;
+    p_var2 = p_var2 + ((p_var1 * (int64_t)calibData.dig_P5) << 17);
+    p_var2 = p_var2 + (((int64_t)calibData.dig_P4) << 35);
+    p_var1 = ((p_var1 * p_var1 * (int64_t)calibData.dig_P3) >> 8) + ((p_var1 * (int64_t)calibData.dig_P2) << 12);
+    p_var1 = (((((int64_t)1) << 47) + p_var1)) * ((int64_t)calibData.dig_P1) >> 33;
+
+    p = 1048576 - adc_P;
+    p = (((p << 31) - p_var2) * 3125) / p_var1;
+
+    p_var1 = (((int64_t)calibData.dig_P9) * (p >> 13) * (p >> 13)) >> 25; 
+    p_var2 = (((int64_t)calibData.dig_P8) * p) >> 19;
+
+    p = ((p + p_var1 + p_var2) >> 8) + (((int64_t)calibData.dig_P7) << 4);
+
+    *press = (float)p / 256.0f;
+}
+```
+### Communication I²C
+#### Identification du BMP280
+
