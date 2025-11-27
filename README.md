@@ -93,3 +93,4 @@ void BMP280_Init(void)
 
 ![image2](temp.png)
 
+### Capteur MPU9250 :
