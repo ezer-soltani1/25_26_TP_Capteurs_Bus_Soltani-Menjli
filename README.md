@@ -4,3 +4,5 @@
 - Fakhri MENJLI
 ## Objectif de TP:
 mettre en place l'ensemble des composants suivant:
+ ![image](architecture de système.PNG)
+ 
