@@ -115,3 +115,6 @@ void MPU9250_ReadAccel(MPU9250_Data *data)
 **Résultat final**
 
 ![image2](temp_acc.png)
+
+ ## TP2 : Interfaçage STM32 - Raspberry
+ 
