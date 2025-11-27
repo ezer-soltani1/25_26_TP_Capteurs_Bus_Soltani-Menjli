@@ -25,6 +25,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <string.h>
+#include <math.h>
 #include "bmp280.h"
 #include "mpu9250.h"
 /* USER CODE END Includes */
@@ -47,13 +49,16 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint8_t rxByte;
+char rxBuffer[32];
+uint8_t rxIndex = 0;
+float K_coeff = 1.0f;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void ProcessCommand(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -61,8 +66,78 @@ void SystemClock_Config(void);
 int __io_putchar(int ch)
 {
 	HAL_UART_Transmit(&huart2, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
-
+	HAL_UART_Transmit(&huart1, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
 	return ch;
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART1)
+  {
+    if (rxByte == '\n' || rxByte == '\r')
+    {
+      rxBuffer[rxIndex] = '\0';
+      if (rxIndex > 0)
+      {
+    	  ProcessCommand();
+      }
+      rxIndex = 0;
+    }
+    else
+    {
+      if (rxIndex < 31)
+      {
+        rxBuffer[rxIndex++] = (char)rxByte;
+      }
+    }
+    HAL_UART_Receive_IT(&huart1, &rxByte, 1);
+  }
+}
+
+void ProcessCommand(void)
+{
+	char txBuffer[64];
+	float temp, press;
+
+	if (strcmp(rxBuffer, "GET_T") == 0)
+	{
+		BMP280_ReadTemperaturePressure(&temp, &press);
+		sprintf(txBuffer, "T=%+06.2f_C\r\n", temp);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_P") == 0)
+	{
+		BMP280_ReadTemperaturePressure(&temp, &press);
+		sprintf(txBuffer, "P=%06.0fPa\r\n", press);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strncmp(rxBuffer, "SET_K=", 6) == 0)
+	{
+		int k_val;
+		if (sscanf(rxBuffer + 6, "%d", &k_val) == 1)
+		{
+			K_coeff = k_val / 100.0f;
+			sprintf(txBuffer, "SET_K=OK\r\n");
+		}
+		else
+		{
+			sprintf(txBuffer, "SET_K=ERR\r\n");
+		}
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_K") == 0)
+	{
+		sprintf(txBuffer, "K=%08.5f\r\n", K_coeff);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_A") == 0)
+	{
+		MPU9250_Data mpu;
+		MPU9250_ReadAccel(&mpu);
+		float angle = atan2f(mpu.Accel_X, sqrtf(mpu.Accel_Y * mpu.Accel_Y + mpu.Accel_Z * mpu.Accel_Z)) * 180.0f / 3.14159f;
+		sprintf(txBuffer, "A=%08.4f\r\n", angle);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
 }
 /* USER CODE END 0 */
 
@@ -74,10 +149,13 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  float temperature, pressure;
-  MPU9250_Data mpuData;
+  /*float temperature, pressure;
+  MPU9250_Data mpuData;*/
   /* USER CODE END 1 */
 
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -95,12 +173,14 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  printf("---Test UART2---\r\n");
-  HAL_Delay(500);
   BMP280_Init();
   HAL_Delay(500);
   MPU9250_Init();
+
+  // Start receiving on UART1
+  HAL_UART_Receive_IT(&huart1, &rxByte, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -108,13 +188,14 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
     /* USER CODE BEGIN 3 */
-	BMP280_ReadTemperaturePressure(&temperature, &pressure);
+	/*BMP280_ReadTemperaturePressure(&temperature, &pressure);
 	printf("BMP280 -> Temp: %.2f C, Press: %.2f Pa\r\n", temperature, pressure);
 	printf("------------------------------------------\r\n");
 	MPU9250_ReadAccel(&mpuData);
 	printf("MPU9250 -> Accel: [x=%.2f, y=%.2f, z=%.2f] g\r\n", mpuData.Accel_X, mpuData.Accel_Y, mpuData.Accel_Z);
-	HAL_Delay(1000);
+	HAL_Delay(1000);*/
   }
   /* USER CODE END 3 */
 }
