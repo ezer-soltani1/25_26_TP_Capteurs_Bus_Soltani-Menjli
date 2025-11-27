@@ -26,6 +26,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "bmp280.h"
+#include "mpu9250.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,6 +75,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
   float temperature, pressure;
+  MPU9250_Data mpuData;
   /* USER CODE END 1 */
 
   HAL_Init();
@@ -98,6 +100,7 @@ int main(void)
   HAL_Delay(500);
   BMP280_Init();
   HAL_Delay(500);
+  MPU9250_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -107,7 +110,10 @@ int main(void)
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
 	BMP280_ReadTemperaturePressure(&temperature, &pressure);
-	printf("Temp: %.2f C, Press: %.2f Pa\r\n", temperature, pressure);
+	printf("BMP280 -> Temp: %.2f C, Press: %.2f Pa\r\n", temperature, pressure);
+	printf("------------------------------------------\r\n");
+	MPU9250_ReadAccel(&mpuData);
+	printf("MPU9250 -> Accel: [x=%.2f, y=%.2f, z=%.2f] g\r\n", mpuData.Accel_X, mpuData.Accel_Y, mpuData.Accel_Z);
 	HAL_Delay(1000);
   }
   /* USER CODE END 3 */

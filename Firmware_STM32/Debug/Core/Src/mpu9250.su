@@ -1,0 +1,3 @@
+../Core/Src/mpu9250.c:7:9:MPU9250_ReadID	32	static
+../Core/Src/mpu9250.c:14:6:MPU9250_Init	32	static
+../Core/Src/mpu9250.c:32:6:MPU9250_ReadAccel	48	static
