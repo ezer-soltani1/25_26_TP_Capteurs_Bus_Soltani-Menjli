@@ -5,7 +5,7 @@
 ## Objectif de TP:
 mettre en place l'ensemble des composants suivant:
 
-![image1](architecture%20de%20syst%C3%A8me.PNG)
+![image1](images/architecture%20de%20syst%C3%A8me.PNG)
 
  ## TP 1:Bus I2C
  ### Capteur BMP280 :
@@ -87,11 +87,11 @@ void BMP280_Init(void)
 
 **Vérification du configuration**
 
-![image2](Verification%20du%20configuration.PNG)
+![image2](images/Verification%20du%20configuration.PNG)
 
 **Résultats obtenus après l’interfaçage du capteur BMP280**
 
-![image2](temp.png)
+![image2](images/temp.png)
 
 ### Capteur MPU9250 :
 **Fonction de lecture accélerometre MPU9250**
@@ -114,9 +114,9 @@ void MPU9250_ReadAccel(MPU9250_Data *data)
 ```
 **Résultat final**
 
-![image3](temp_acc.png)
+![image3](images/temp_acc.png)
 
  ## TP2 : Interfaçage STM32 - Raspberry
  ### Objectif: Permettre l'interrogation du STM32 via un Raspberry Pi Zero Wifi
  
- ![image4](archtp2.PNG)
+ ![image4](images/archtp2.PNG)
