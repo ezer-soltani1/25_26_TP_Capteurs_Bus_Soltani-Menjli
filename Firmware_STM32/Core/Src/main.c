@@ -66,7 +66,6 @@ void ProcessCommand(void);
 int __io_putchar(int ch)
 {
 	HAL_UART_Transmit(&huart2, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
-	HAL_UART_Transmit(&huart1, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
 	return ch;
 }
 
@@ -79,6 +78,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
       rxBuffer[rxIndex] = '\0';
       if (rxIndex > 0)
       {
+    	  printf("CMD->%s\r\n",rxBuffer);
     	  ProcessCommand();
       }
       rxIndex = 0;
@@ -103,12 +103,14 @@ void ProcessCommand(void)
 	{
 		BMP280_ReadTemperaturePressure(&temp, &press);
 		sprintf(txBuffer, "T=%+06.2f_C\r\n", temp);
+		printf(txBuffer);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strcmp(rxBuffer, "GET_P") == 0)
 	{
 		BMP280_ReadTemperaturePressure(&temp, &press);
 		sprintf(txBuffer, "P=%06.0fPa\r\n", press);
+		printf(txBuffer);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strncmp(rxBuffer, "SET_K=", 6) == 0)
@@ -123,11 +125,13 @@ void ProcessCommand(void)
 		{
 			sprintf(txBuffer, "SET_K=ERR\r\n");
 		}
+		printf(txBuffer);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strcmp(rxBuffer, "GET_K") == 0)
 	{
 		sprintf(txBuffer, "K=%08.5f\r\n", K_coeff);
+		printf(txBuffer);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strcmp(rxBuffer, "GET_A") == 0)
@@ -136,6 +140,7 @@ void ProcessCommand(void)
 		MPU9250_ReadAccel(&mpu);
 		float angle = atan2f(mpu.Accel_X, sqrtf(mpu.Accel_Y * mpu.Accel_Y + mpu.Accel_Z * mpu.Accel_Z)) * 180.0f / 3.14159f;
 		sprintf(txBuffer, "A=%08.4f\r\n", angle);
+		printf(txBuffer);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 }
