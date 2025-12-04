@@ -2775,7 +2775,6 @@ void ProcessCommand(void)
  8001ccc:	4611      	mov	r1, r2
  8001cce:	4618      	mov	r0, r3
  8001cd0:	f7ff fb74 	bl	80013bc <BMP280_ReadTemperaturePressure>
-		// T=+12.50_C (10 chars)
 		sprintf(txBuffer, "T=%+06.2f_C\r\n", temp);
  8001cd4:	69bb      	ldr	r3, [r7, #24]
  8001cd6:	4618      	mov	r0, r3
@@ -2795,8 +2794,8 @@ void ProcessCommand(void)
  8001cfc:	2364      	movs	r3, #100	@ 0x64
  8001cfe:	486e      	ldr	r0, [pc, #440]	@ (8001eb8 <ProcessCommand+0x20c>)
  8001d00:	f003 fb42 	bl	8005388 <HAL_UART_Transmit>
+		MPU9250_ReadAccel(&mpu);
 		float angle = atan2f(mpu.Accel_X, sqrtf(mpu.Accel_Y * mpu.Accel_Y + mpu.Accel_Z * mpu.Accel_Z)) * 180.0f / 3.14159f;
-		// A=125.7000 (10 chars)
 		sprintf(txBuffer, "A=%08.4f\r\n", angle);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
