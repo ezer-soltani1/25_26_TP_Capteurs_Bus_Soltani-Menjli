@@ -242,14 +242,57 @@ Nous avons créé un répertoire dédié au développement du serveur et y avons
 
  ![image4](images/Capture.PNG)
 
- ### Premier fichier Web
+### Première page REST
+**Premier fichier Web**
 
- Nous avons créé un fichier hello.py au sein du répertoire ~/RaspberryPi_server:
- 
- ![image4](images/hellopy.PNG)
+Nous avons créé un fichier hello.py au sein du répertoire ~/RaspberryPi_server:
+
+```c
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World!\n'
+```
+
+Test du serveur:
+
+![image4](images/hello_world_serveur.PNG)
+
+**Quel est le rôle du décorateur @app.route ?**
+
+Le décorateur @app.route sert à associer une URL (une route) à une fonction Python.
+Lorsque le serveur reçoit une requête correspondant à cette URL, Flask exécute automatiquement la fonction liée.
+Autrement dit, il permet de définir quelles pages ou quelles ressources seront accessibles via votre API.
+
+**Quel est le rôle du fragment <int:index> ?**
+
+Le fragment <int:index> indique à Flask que la route doit contenir une variable nommée index, qui doit être un entier.
+Flask récupère alors cette valeur dans l’URL (par exemple /api/welcome/3) et la transmet comme argument à la fonction Python api_welcome_index(index).
+
+Cela permet donc de créer des routes dynamiques, capables de traiter des valeurs variables provenant de l’URL.
+
+**Première page REST**
+
+Solution 1:
+
+![image4](images/hellopy.PNG)
+
+Test du serveur:
+
+![image4](images/json_response.PNG)
+
+Remarque :On peut remarquer que, par défaut, la réponse n’est pas au format JSON mais en HTML.
+
+Solution 2:
+
+![image4](images/jsonify_test2.PNG)
+
+Test du serveur:
+
+![image4](images/jsonify_test1.PNG)
+
+Remarque :Cette solution est préférable car elle utilise jsonify : le contenu Python est automatiquement converti en JSON, ce qui garantit que la réponse de l’API est correctement formatée.
 
 
-
-
-
-    
