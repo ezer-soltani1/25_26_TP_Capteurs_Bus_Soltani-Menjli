@@ -316,4 +316,19 @@ def hello_world():
 	return 'Hello, World!\n'
 ```
 
+Test du serveur:
+
 ![image4](images/404_test.PNG)
+
+### Méthodes POST, PUT, DELETE…
+**API CRUD**
+Le script est dans le fichier "RaspberryPi_Server/templates/hello.py"
+
+Test du script:
+
+![image4](test_POST.PNG)
+
+![image4](test_post_working.PNG)
+
+
+
