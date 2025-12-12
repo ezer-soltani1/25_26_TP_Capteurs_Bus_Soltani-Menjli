@@ -330,5 +330,12 @@ Test du script:
 
 ![image4](images/test_post_working.PNG)
 
+## TP4 - Bus CAN
+### Objectif : 
 
+Concevoir et développer une API REST pour l’échange de données, tout en mettant en place et testant un périphérique connecté sur le bus CAN.
+
+![image4](images/tp4.PNG)
+
+### Configuration du bus CAN sur CubeMX:
 
