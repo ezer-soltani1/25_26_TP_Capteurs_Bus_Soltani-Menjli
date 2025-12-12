@@ -120,3 +120,103 @@ void MPU9250_ReadAccel(MPU9250_Data *data)
  ### Objectif: Permettre l'interrogation du STM32 via un Raspberry Pi Zero Wifi
  
  ![image4](images/archtp2.PNG)
+
+ #### Premier démarrage
+**Connexion SSH :**
+
+![image4](images/connection.PNG)
+ 
+Nous avons réussi la connexion SSH au Raspberry Pi : l’authentification s’est faite avec succès et nous avons maintenant accès au terminal.
+
+**Configuration et test avec minicom :**
+
+  * installation minicom
+
+```c
+sudo apt update
+sudo apt install minicom
+```
+
+  * configuration minicom
+
+ ![image4](images/minicom_config.PNG)
+
+#### Port Série
+  * Loopback :
+
+    Nous avons réalisé une boucle locale sur le port série du Raspberry Pi en reliant la broche RX à la broche TX. Ensuite, nous avons utilisé le logiciel minicom afin de tester le bon fonctionnement du port série.
+    
+![image4](images/test_uart_loopback.PNG)
+
+  * Implémentation du protocole sur la STM32 :
+
+    Le code suivant gère les commandes reçues via l’UART et génère les réponses associées:
+
+```c
+void ProcessCommand(void)
+{
+	char txBuffer[64];
+	float temp, press;
+
+	if (strcmp(rxBuffer, "GET_T") == 0)
+	{
+		BMP280_ReadTemperaturePressure(&temp, &press);
+		sprintf(txBuffer, "T=%+06.2f_C\r\n", temp);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_P") == 0)
+	{
+		BMP280_ReadTemperaturePressure(&temp, &press);
+		sprintf(txBuffer, "P=%06.0fPa\r\n", press);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strncmp(rxBuffer, "SET_K=", 6) == 0)
+	{
+		int k_val;
+		if (sscanf(rxBuffer + 6, "%d", &k_val) == 1)
+		{
+			K_coeff = k_val / 100.0f;
+			sprintf(txBuffer, "SET_K=OK\r\n");
+		}
+		else
+		{
+			sprintf(txBuffer, "SET_K=ERR\r\n");
+		}
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_K") == 0)
+	{
+		sprintf(txBuffer, "K=%08.5f\r\n", K_coeff);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_A") == 0)
+	{
+		MPU9250_Data mpu;
+		MPU9250_ReadAccel(&mpu);
+		float angle = atan2f(mpu.Accel_X, sqrtf(mpu.Accel_Y * mpu.Accel_Y + mpu.Accel_Z * mpu.Accel_Z)) * 180.0f / 3.14159f;
+		sprintf(txBuffer, "A=%08.4f\r\n", angle);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+}
+```
+
+Essais réalisés depuis le Raspberry Pi :
+
+
+ ![image4](images/stm32_cmd.png)
+
+
+
+
+
+
+
+
+
+
+    
