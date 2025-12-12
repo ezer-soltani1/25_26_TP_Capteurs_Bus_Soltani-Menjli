@@ -242,8 +242,7 @@ Nous avons créé un répertoire dédié au développement du serveur et y avons
 
  ![image4](images/Capture.PNG)
 
-### Première page REST
-**Premier fichier Web**
+### Premier fichier Web
 
 Nous avons créé un fichier hello.py au sein du répertoire ~/RaspberryPi_server:
 
@@ -273,7 +272,8 @@ Flask récupère alors cette valeur dans l’URL (par exemple /api/welcome/3) et
 
 Cela permet donc de créer des routes dynamiques, capables de traiter des valeurs variables provenant de l’URL.
 
-**Première page REST**
+### Première page REST
+**Réponse JSON**
 
 Solution 1:
 
@@ -295,4 +295,25 @@ Test du serveur:
 
 Remarque :Cette solution est préférable car elle utilise jsonify : le contenu Python est automatiquement converti en JSON, ce qui garantit que la réponse de l’API est correctement formatée.
 
+**Ajout de la gestion des erreurs 404**
 
+Nous avons implémenté la gestion des erreurs 404 dans hello.py afin de renvoyer un message approprié lorsqu’une route inexistante est sollicitée.
+
+```c
+from flask import Flask,jsonify,abort,render_template,request
+import json
+
+app = Flask(__name__)
+
+welcome = "Welcome to 3ESE API!"
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('page_not_found.html'), 404
+
+@app.route('/')
+def hello_world():
+	return 'Hello, World!\n'
+```
+
+![image4](images/404_test.PNG)
