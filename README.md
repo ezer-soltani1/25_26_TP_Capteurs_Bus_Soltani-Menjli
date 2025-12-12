@@ -326,9 +326,9 @@ Le script est dans le fichier "RaspberryPi_Server/templates/hello.py"
 
 Test du script:
 
-![image4](test_POST.PNG)
+![image4](images/test_POST.PNG)
 
-![image4](test_post_working.PNG)
+![image4](images/test_post_working.PNG)
 
 
 
