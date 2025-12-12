@@ -120,3 +120,222 @@ void MPU9250_ReadAccel(MPU9250_Data *data)
  ### Objectif: Permettre l'interrogation du STM32 via un Raspberry Pi Zero Wifi
  
  ![image4](images/archtp2.PNG)
+
+ #### Premier démarrage
+**Connexion SSH :**
+
+![image4](images/connection.PNG)
+ 
+Nous avons réussi la connexion SSH au Raspberry Pi : l’authentification s’est faite avec succès et nous avons maintenant accès au terminal.
+
+**Configuration et test avec minicom :**
+
+  * installation minicom
+
+```c
+sudo apt update
+sudo apt install minicom
+```
+
+  * configuration minicom
+
+ ![image4](images/minicom_config.PNG)
+
+#### Port Série
+  * Loopback :
+
+    Nous avons réalisé une boucle locale sur le port série du Raspberry Pi en reliant la broche RX à la broche TX. Ensuite, nous avons utilisé le logiciel minicom afin de tester le bon fonctionnement du port série.
+    
+![image4](images/test_uart_loopback.PNG)
+
+  * Implémentation du protocole sur la STM32 :
+
+    Le code suivant gère les commandes reçues via l’UART et génère les réponses associées:
+
+```c
+void ProcessCommand(void)
+{
+	char txBuffer[64];
+	float temp, press;
+
+	if (strcmp(rxBuffer, "GET_T") == 0)
+	{
+		BMP280_ReadTemperaturePressure(&temp, &press);
+		sprintf(txBuffer, "T=%+06.2f_C\r\n", temp);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_P") == 0)
+	{
+		BMP280_ReadTemperaturePressure(&temp, &press);
+		sprintf(txBuffer, "P=%06.0fPa\r\n", press);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strncmp(rxBuffer, "SET_K=", 6) == 0)
+	{
+		int k_val;
+		if (sscanf(rxBuffer + 6, "%d", &k_val) == 1)
+		{
+			K_coeff = k_val / 100.0f;
+			sprintf(txBuffer, "SET_K=OK\r\n");
+		}
+		else
+		{
+			sprintf(txBuffer, "SET_K=ERR\r\n");
+		}
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_K") == 0)
+	{
+		sprintf(txBuffer, "K=%08.5f\r\n", K_coeff);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+	else if (strcmp(rxBuffer, "GET_A") == 0)
+	{
+		MPU9250_Data mpu;
+		MPU9250_ReadAccel(&mpu);
+		float angle = atan2f(mpu.Accel_X, sqrtf(mpu.Accel_Y * mpu.Accel_Y + mpu.Accel_Z * mpu.Accel_Z)) * 180.0f / 3.14159f;
+		sprintf(txBuffer, "A=%08.4f\r\n", angle);
+		printf(txBuffer);
+		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+	}
+}
+```
+
+Essais réalisés depuis le Raspberry Pi :
+
+
+ ![image4](images/stm32_cmd.png)
+
+  * Commande depuis un script Python :
+
+le script est dans le fichier  "STM32_PI_Comm.py"
+
+```c
+# Boucle de test principale
+if __name__ == "__main__":
+    print("Démarrage du test de communication STM32 <-> Raspberry Pi")
+    print(f"Port utilisé : {ser.name}")
+    
+    try:
+        while True:
+            print("\n--- Nouvelle lecture ---")
+            get_temperature()
+            get_pressure()
+            get_angle()
+            get_k()
+
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("\nArrêt du programme.")
+        ser.close()
+```
+		
+ ![image4](images/script_py.PNG)
+
+## TP3 - Interface REST
+Nous avons créé un répertoire dédié au développement du serveur et y avons ajouté un fichier "requirements.txt".
+
+ ![image4](images/Capture.PNG)
+
+### Premier fichier Web
+
+Nous avons créé un fichier hello.py au sein du répertoire ~/RaspberryPi_server:
+
+```c
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World!\n'
+```
+
+Test du serveur:
+
+![image4](images/hello_world_serveur.PNG)
+
+**Quel est le rôle du décorateur @app.route ?**
+
+Le décorateur @app.route sert à associer une URL (une route) à une fonction Python.
+Lorsque le serveur reçoit une requête correspondant à cette URL, Flask exécute automatiquement la fonction liée.
+Autrement dit, il permet de définir quelles pages ou quelles ressources seront accessibles via votre API.
+
+**Quel est le rôle du fragment <int:index> ?**
+
+Le fragment <int:index> indique à Flask que la route doit contenir une variable nommée index, qui doit être un entier.
+Flask récupère alors cette valeur dans l’URL (par exemple /api/welcome/3) et la transmet comme argument à la fonction Python api_welcome_index(index).
+
+Cela permet donc de créer des routes dynamiques, capables de traiter des valeurs variables provenant de l’URL.
+
+### Première page REST
+**Réponse JSON**
+
+Solution 1:
+
+![image4](images/hellopy.PNG)
+
+Test du serveur:
+
+![image4](images/json_response.PNG)
+
+Remarque :On peut remarquer que, par défaut, la réponse n’est pas au format JSON mais en HTML.
+
+Solution 2:
+
+![image4](images/jsonify_test2.PNG)
+
+Test du serveur:
+
+![image4](images/jsonify_test1.PNG)
+
+Remarque :Cette solution est préférable car elle utilise jsonify : le contenu Python est automatiquement converti en JSON, ce qui garantit que la réponse de l’API est correctement formatée.
+
+**Ajout de la gestion des erreurs 404**
+
+Nous avons implémenté la gestion des erreurs 404 dans hello.py afin de renvoyer un message approprié lorsqu’une route inexistante est sollicitée.
+
+```c
+from flask import Flask,jsonify,abort,render_template,request
+import json
+
+app = Flask(__name__)
+
+welcome = "Welcome to 3ESE API!"
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('page_not_found.html'), 404
+
+@app.route('/')
+def hello_world():
+	return 'Hello, World!\n'
+```
+
+Test du serveur:
+
+![image4](images/404_test.PNG)
+
+### Méthodes POST, PUT, DELETE…
+**API CRUD**
+Le script est dans le fichier "RaspberryPi_Server/templates/hello.py"
+
+Test du script:
+
+![image4](images/test_POST.PNG)
+
+![image4](images/test_post_working.PNG)
+
+## TP4 - Bus CAN
+### Objectif : 
+
+Concevoir et développer une API REST pour l’échange de données, tout en mettant en place et testant un périphérique connecté sur le bus CAN.
+
+![image4](images/tp4.PNG)
+
+### Configuration du bus CAN sur CubeMX:
+
