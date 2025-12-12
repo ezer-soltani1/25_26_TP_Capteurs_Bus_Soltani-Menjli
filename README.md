@@ -210,10 +210,43 @@ Essais réalisés depuis le Raspberry Pi :
 
  ![image4](images/stm32_cmd.png)
 
+  * Commande depuis un script Python :
 
+le script est dans le fichier  "STM32_PI_Comm.py"
 
+```c
+# Boucle de test principale
+if __name__ == "__main__":
+    print("Démarrage du test de communication STM32 <-> Raspberry Pi")
+    print(f"Port utilisé : {ser.name}")
+    
+    try:
+        while True:
+            print("\n--- Nouvelle lecture ---")
+            get_temperature()
+            get_pressure()
+            get_angle()
+            get_k()
 
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("\nArrêt du programme.")
+        ser.close()
+```
+		
+ ![image4](images/script_py.PNG)
 
+## TP3 - Interface REST
+Nous avons créé un répertoire dédié au développement du serveur et y avons ajouté un fichier "requirements.txt".
+
+ ![image4](images/Capture.PNG)
+
+ ### Premier fichier Web
+
+ Nous avons créé un fichier hello.py au sein du répertoire ~/RaspberryPi_server:
+ 
+ ![image4](images/hellopy.PNG)
 
 
 
