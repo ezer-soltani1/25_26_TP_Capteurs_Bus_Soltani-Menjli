@@ -89,11 +89,9 @@
 </div>
 
 <script>
-    // --- API Interactions ---
 
     async function updateTemp() {
         try {
-            // POST to trigger new measurement
             const response = await fetch('/temp/', { method: 'POST' });
             const data = await response.json();
             
