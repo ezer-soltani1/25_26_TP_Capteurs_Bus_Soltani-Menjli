@@ -438,3 +438,7 @@ Le système fonctionne de manière autonome.
 **Test de l'API REST (Température, Pression, Angle) :**
 
 ![image_api](images/Rest_api.PNG)
+
+**Affichage page web :**
+
+![image_api](images/page_web.PNG)
