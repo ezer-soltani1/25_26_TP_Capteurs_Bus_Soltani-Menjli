@@ -98,8 +98,7 @@ void ProcessCommand(void)
 
 	if (strcmp(rxBuffer, "GET_T") == 0)
 	{
-        // Return last known stable value or read new one
-		sprintf(txBuffer, "T=%+06.2f_C\n", current_temp); // Format per TP2
+		sprintf(txBuffer, "T=%+06.2f_C\n", current_temp);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 		printf(txBuffer);
 	}
@@ -179,10 +178,9 @@ int main(void)
   MX_USART1_UART_Init();
   MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
-  printf("--- TP5 Start ---\r\n");
   BMP280_Init();
   HAL_Delay(100); 
-  MPU9250_Init(); // Optional if used
+  MPU9250_Init();
 
   HAL_UART_Receive_IT(&huart1, &rxByte, 1);
   Stepper_Init(&hcan1);

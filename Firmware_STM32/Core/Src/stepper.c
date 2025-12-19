@@ -36,7 +36,7 @@ void Stepper_SetAngle(uint8_t angle, uint8_t sign)
 
     TxData[0] = angle;
     TxData[1] = sign;
-    TxData[2] = 0x00; // Unused in Angle mode usually, but kept for safety
+    TxData[2] = 0x00;
 
     HAL_CAN_AddTxMessage(phcan, &TxHeader, TxData, &TxMailbox);
     HAL_Delay(100);
