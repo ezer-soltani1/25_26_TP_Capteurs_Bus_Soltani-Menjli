@@ -61,7 +61,7 @@ main-build: Firmware_STM32_TP_CapteursBus.elf secondary-outputs
 
 # Tool invocations
 Firmware_STM32_TP_CapteursBus.elf Firmware_STM32_TP_CapteursBus.map: $(OBJS) $(USER_OBJS) D:\ENSEA\TP_Capteurs\25_26_TP_Capteurs_Bus_Soltani-Menjli\Firmware_STM32\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Firmware_STM32_TP_CapteursBus.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\ENSEA\TP_Capteurs\25_26_TP_Capteurs_Bus_Soltani-Menjli\Firmware_STM32\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Firmware_STM32_TP_CapteursBus.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "Firmware_STM32_TP_CapteursBus.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\ENSEA\TP_Capteurs\25_26_TP_Capteurs_Bus_Soltani-Menjli\Firmware_STM32\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Firmware_STM32_TP_CapteursBus.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

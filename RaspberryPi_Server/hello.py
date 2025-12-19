@@ -25,7 +25,7 @@ def api_welcome():
         else:
             abort(400, description="Invalid data for POST: 'message' field is required.")
     elif request.method == 'DELETE':
-        welcome = "" # Reset or clear the welcome message
+        welcome = ""
         return '', 202 # No Content
 
 @app.route('/api/welcome/<int:index>', methods=['GET', 'PUT', 'PATCH', 'DELETE'])

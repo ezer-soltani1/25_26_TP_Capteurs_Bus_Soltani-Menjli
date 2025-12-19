@@ -2,21 +2,12 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
+  * @brief          : Main program body (TP5 Integration)
   ******************************************************************************
   */
 /* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+/* Includes ------------------------------------------------------------------
+*/
 #include "main.h"
 #include "can.h"
 #include "i2c.h"
@@ -33,7 +24,7 @@
 #include "stepper.h"
 /* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
+/* Private typedef ----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -54,7 +45,11 @@
 uint8_t rxByte;
 char rxBuffer[32];
 uint8_t rxIndex = 0;
+volatile uint8_t cmdReceived = 0; // Flag for main loop
+
 float K_coeff = 1.0f;
+float current_temp = 0.0f;
+float current_press = 0.0f;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,8 +75,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
       rxBuffer[rxIndex] = '\0';
       if (rxIndex > 0)
       {
-    	  printf("CMD->%s\r\n",rxBuffer);
-    	  ProcessCommand();
+          cmdReceived = 1;
       }
       rxIndex = 0;
     }
@@ -99,41 +93,37 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 void ProcessCommand(void)
 {
 	char txBuffer[64];
-	float temp, press;
+	
+    printf("CMD_RX: %s\r\n", rxBuffer);
 
 	if (strcmp(rxBuffer, "GET_T") == 0)
 	{
-		BMP280_ReadTemperaturePressure(&temp, &press);
-		sprintf(txBuffer, "T=%+06.2f_C\r\n", temp);
-		printf(txBuffer);
+        // Return last known stable value or read new one
+		sprintf(txBuffer, "T=%+06.2f_C\n", current_temp); // Format per TP2
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strcmp(rxBuffer, "GET_P") == 0)
 	{
-		BMP280_ReadTemperaturePressure(&temp, &press);
-		sprintf(txBuffer, "P=%06.0fPa\r\n", press);
-		printf(txBuffer);
+		sprintf(txBuffer, "P=%06.0fPa\n", current_press);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strncmp(rxBuffer, "SET_K=", 6) == 0)
 	{
-		int k_val;
-		if (sscanf(rxBuffer + 6, "%d", &k_val) == 1)
+        float k_val_float;
+		if (sscanf(rxBuffer + 6, "%f", &k_val_float) == 1)
 		{
-			K_coeff = k_val / 100.0f;
-			sprintf(txBuffer, "SET_K=OK\r\n");
+			K_coeff = k_val_float;
+			sprintf(txBuffer, "SET_K=OK\n");
 		}
 		else
 		{
-			sprintf(txBuffer, "SET_K=ERR\r\n");
+			sprintf(txBuffer, "SET_K=ERR\n");
 		}
-		printf(txBuffer);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strcmp(rxBuffer, "GET_K") == 0)
 	{
-		sprintf(txBuffer, "K=%08.5f\r\n", K_coeff);
-		printf(txBuffer);
+		sprintf(txBuffer, "K=%06.2f\n", K_coeff);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
 	else if (strcmp(rxBuffer, "GET_A") == 0)
@@ -141,10 +131,13 @@ void ProcessCommand(void)
 		MPU9250_Data mpu;
 		MPU9250_ReadAccel(&mpu);
 		float angle = atan2f(mpu.Accel_X, sqrtf(mpu.Accel_Y * mpu.Accel_Y + mpu.Accel_Z * mpu.Accel_Z)) * 180.0f / 3.14159f;
-		sprintf(txBuffer, "A=%08.4f\r\n", angle);
-		printf(txBuffer);
+		sprintf(txBuffer, "A=%06.2f\n", angle);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
 	}
+    else 
+    {
+        HAL_UART_Transmit(&huart1, (uint8_t*)"ERR\n", 4, 100);
+    }
 }
 /* USER CODE END 0 */
 
@@ -156,8 +149,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  /*float temperature, pressure;
-  MPU9250_Data mpuData;*/
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -183,9 +175,10 @@ int main(void)
   MX_USART1_UART_Init();
   MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
+  printf("--- TP5 Start ---\r\n");
   BMP280_Init();
-  HAL_Delay(500);
-  MPU9250_Init();
+  HAL_Delay(100); 
+  MPU9250_Init(); // Optional if used
 
   HAL_UART_Receive_IT(&huart1, &rxByte, 1);
   Stepper_Init(&hcan1);
@@ -193,8 +186,9 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  float temp, press;
-  uint8_t angle;
+  
+  uint32_t lastTick = 0;
+  uint8_t stepper_angle;
   const float TEMP_TARGET = 20.0f;
 
   while (1)
@@ -202,25 +196,35 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	BMP280_ReadTemperaturePressure(&temp, &press);
-	
-	float error = TEMP_TARGET - temp;
-	float calculated_angle = error * K_coeff;
 
-	// Clamp the angle between 0 (closed) and 90 (fully open)
-	if (calculated_angle < 0.0f) {
-		calculated_angle = 0.0f;
-	} else if (calculated_angle > 90.0f) {
-		calculated_angle = 90.0f;
-	}
+    // 1. Handle UART Commands (Non-blocking check)
+    if (cmdReceived)
+    {
+        ProcessCommand();
+        cmdReceived = 0;
+    }
 
-	angle = (uint8_t)calculated_angle;
+    if (HAL_GetTick() - lastTick >= 100)
+    {
+        lastTick = HAL_GetTick();
 
-	printf("Temp: %.2f C | Target: %.2f C | Error: %.2f | Valve Angle: %d\r\n", temp, TEMP_TARGET, error, angle);
-	
-	Stepper_SetAngle(angle, STEPPER_SIGN_POS);
-	
-    HAL_Delay(1000);
+        // Read Sensor
+        BMP280_ReadTemperaturePressure(&current_temp, &current_press);
+
+        float error = TEMP_TARGET - current_temp;
+        float calculated_angle = error * K_coeff;
+
+        // Clamp 0-90
+        if (calculated_angle < 0.0f) calculated_angle = 0.0f;
+        if (calculated_angle > 90.0f) calculated_angle = 90.0f;
+
+        stepper_angle = (uint8_t)calculated_angle;
+
+        //printf("T:%.2f P:%.0f Err:%.2f K:%.1f Angle:%d\r\n", current_temp, current_press, error, K_coeff, stepper_angle);
+
+        // Send CAN Message
+        Stepper_SetAngle(stepper_angle, STEPPER_SIGN_POS);
+    }
   }
   /* USER CODE END 3 */
 }
