@@ -339,3 +339,4 @@ Concevoir et développer une API REST pour l’échange de données, tout en met
 
 ### Configuration du bus CAN sur CubeMX:
 
+![image4](images/config_can.png)
