@@ -435,10 +435,18 @@ Le système fonctionne de manière autonome.
 2. Une requête `POST /temp/` récupère la température actuelle.
 3. Si on chauffe le capteur, le moteur tourne automatiquement.
 
-**Test de l'API REST (Température, Pression, Angle) :**
+**Test de l'API REST (Température, Pression, Angle) via Curl :**
 
 ![image_api](images/Rest_api.PNG)
 
-**Affichage page web :**
+### Bonus : Dashboard Web de Contrôle
+Pour faciliter l'interaction avec le système sans passer par la ligne de commande, nous avons développé une interface Web (Dashboard) servie par Flask.
 
-![image_api](images/page_web.PNG)
+Cette page permet de :
+*   Visualiser la température et la pression en temps réel.
+*   Voir l'historique des mesures.
+*   Piloter la sensibilité du moteur (Coefficient K) directement via un formulaire.
+
+**Aperçu du Dashboard :**
+
+![dashboard](images/page_web.PNG)
