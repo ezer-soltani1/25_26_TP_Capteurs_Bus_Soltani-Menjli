@@ -377,8 +377,6 @@ Fusionner les briques I2C, UART, CAN et REST pour obtenir un système connecté 
 3. Le Raspberry Pi interroge le STM32 via UART et expose les données sur une API REST.
 
 ## Architecture Logicielle (STM32)
-Pour assurer le temps réel, nous avons banni les fonctions bloquantes (`HAL_Delay`) de la boucle principale.
-
 **Boucle principale non-bloquante :**
 ```c
   while (1)
@@ -440,5 +438,3 @@ Le système fonctionne de manière autonome.
 1. Une requête `POST /scale/10.0` augmente la sensibilité du moteur.
 2. Une requête `POST /temp/` récupère la température actuelle.
 3. Si on chauffe le capteur, le moteur tourne automatiquement.
-
-```
