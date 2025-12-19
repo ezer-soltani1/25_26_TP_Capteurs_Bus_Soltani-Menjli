@@ -397,10 +397,6 @@ Fusionner les briques I2C, UART, CAN et REST pour obtenir un système connecté 
         // Calcul de l\'angle (Loi de commande Proportionnelle)
         float error = current_temp - TEMP_TARGET; // Mode Refroidissement
         float calculated_angle = error * K_coeff;
-        
-        // Saturation 0-90°
-        if (calculated_angle < 0) calculated_angle = 0;
-        if (calculated_angle > 90) calculated_angle = 90;
 
         // Envoi CAN
         Stepper_SetAngle((uint8_t)calculated_angle, 0);
