@@ -434,3 +434,7 @@ Le système fonctionne de manière autonome.
 1. Une requête `POST /scale/10.0` augmente la sensibilité du moteur.
 2. Une requête `POST /temp/` récupère la température actuelle.
 3. Si on chauffe le capteur, le moteur tourne automatiquement.
+
+**Test de l'API REST (Température, Pression, Angle) :**
+
+![image_api](images/Rest_api.PNG)
