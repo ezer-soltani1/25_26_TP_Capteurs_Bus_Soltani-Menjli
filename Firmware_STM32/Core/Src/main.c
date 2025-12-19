@@ -101,11 +101,13 @@ void ProcessCommand(void)
         // Return last known stable value or read new one
 		sprintf(txBuffer, "T=%+06.2f_C\n", current_temp); // Format per TP2
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+		printf(txBuffer);
 	}
 	else if (strcmp(rxBuffer, "GET_P") == 0)
 	{
 		sprintf(txBuffer, "P=%06.0fPa\n", current_press);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+		printf(txBuffer);
 	}
 	else if (strncmp(rxBuffer, "SET_K=", 6) == 0)
 	{
@@ -120,6 +122,7 @@ void ProcessCommand(void)
 			sprintf(txBuffer, "SET_K=ERR\n");
 		}
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+		printf(txBuffer);
 	}
 	else if (strcmp(rxBuffer, "GET_K") == 0)
 	{
@@ -133,6 +136,7 @@ void ProcessCommand(void)
 		float angle = atan2f(mpu.Accel_X, sqrtf(mpu.Accel_Y * mpu.Accel_Y + mpu.Accel_Z * mpu.Accel_Z)) * 180.0f / 3.14159f;
 		sprintf(txBuffer, "A=%06.2f\n", angle);
 		HAL_UART_Transmit(&huart1, (uint8_t*)txBuffer, strlen(txBuffer), 100);
+		printf(txBuffer);
 	}
     else 
     {
@@ -189,15 +193,13 @@ int main(void)
   
   uint32_t lastTick = 0;
   uint8_t stepper_angle;
-  const float TEMP_TARGET = 20.0f;
+  const float TEMP_TARGET = 30.0f;
 
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-    // 1. Handle UART Commands (Non-blocking check)
     if (cmdReceived)
     {
         ProcessCommand();
@@ -214,13 +216,9 @@ int main(void)
         float error = TEMP_TARGET - current_temp;
         float calculated_angle = error * K_coeff;
 
-        // Clamp 0-90
-        if (calculated_angle < 0.0f) calculated_angle = 0.0f;
-        if (calculated_angle > 90.0f) calculated_angle = 90.0f;
+        stepper_angle = (uint8_t)(calculated_angle);
 
-        stepper_angle = (uint8_t)calculated_angle;
-
-        //printf("T:%.2f P:%.0f Err:%.2f K:%.1f Angle:%d\r\n", current_temp, current_press, error, K_coeff, stepper_angle);
+        //printf("T:%.2f | P:%.0f | Err:%.2f | K:%.1f | Angle:%d\r\n", current_temp, current_press, error, K_coeff, stepper_angle);
 
         // Send CAN Message
         Stepper_SetAngle(stepper_angle, STEPPER_SIGN_POS);

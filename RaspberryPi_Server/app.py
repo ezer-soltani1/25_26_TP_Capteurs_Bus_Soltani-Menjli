@@ -31,7 +31,7 @@ def send_stm32_command(command):
             print(f"Serial Error: {e}")
             return "ERR_SERIAL"
 
-# --- Data History ---
+# --- Variables Globales ---
 temp_history = []
 pres_history = []
 current_scale = 1.0

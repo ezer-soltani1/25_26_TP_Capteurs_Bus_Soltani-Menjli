@@ -15,7 +15,7 @@ mettre en place l'ensemble des composants suivant:
 2. le registre et la valeur permettant d'identifier ce composant:
    * l'adresse 0xD0 et la valeur est 0x58.
 3. le registre et la valeur permettant de placer le composant en mode normal
-   * Le registre ctrl_meas à l'adresse 0xF4 et Les bits doivent être à "11" en Mode normale.
+   * Le registre ctrl_meas à l\'adresse 0xF4 et Les bits doivent être à "11" en Mode normale.
 4. Registres d’étalonnage du composant :
    * Les valeurs d’étalonnage sont stockées dans les registres calib00 à calib25, correspondant aux adresses mémoire allant de 0x88 à 0xA1.
 5. Registres contenant la température (et leur format) :Les données de température sont réparties sur trois registres :
@@ -117,7 +117,7 @@ void MPU9250_ReadAccel(MPU9250_Data *data)
 ![image3](images/temp_acc.png)
 
  ## TP2 : Interfaçage STM32 - Raspberry
- ### Objectif: Permettre l'interrogation du STM32 via un Raspberry Pi Zero Wifi
+ ### Objectif: Permettre l\'interrogation du STM32 via un Raspberry Pi Zero Wifi
  
  ![image4](images/archtp2.PNG)
 
@@ -126,7 +126,7 @@ void MPU9250_ReadAccel(MPU9250_Data *data)
 
 ![image4](images/connection.PNG)
  
-Nous avons réussi la connexion SSH au Raspberry Pi : l’authentification s’est faite avec succès et nous avons maintenant accès au terminal.
+ Nous avons réussi la connexion SSH au Raspberry Pi : l\'authentification s\'est faite avec succès et nous avons maintenant accès au terminal.
 
 **Configuration et test avec minicom :**
 
@@ -150,7 +150,7 @@ sudo apt install minicom
 
   * Implémentation du protocole sur la STM32 :
 
-    Le code suivant gère les commandes reçues via l’UART et génère les réponses associées:
+    Le code suivant gère les commandes reçues via l\'UART et génère les réponses associées:
 
 ```c
 void ProcessCommand(void)
@@ -340,3 +340,105 @@ Concevoir et développer une API REST pour l’échange de données, tout en met
 ### Configuration du bus CAN sur CubeMX:
 
 ![image4](images/config_can.png)
+
+### Pilotage du Moteur Pas-à-Pas
+Pour piloter le moteur via le bus CAN, nous envoyons des trames avec un ID spécifique. Voici la fonction permettant de définir l\'angle du moteur :
+
+```c
+void Stepper_SetAngle(uint8_t angle, uint8_t sign)
+{
+    CAN_TxHeaderTypeDef TxHeader;
+    uint8_t TxData[8];
+    uint32_t TxMailbox;
+
+    TxHeader.StdId = 0x61; // ID pour l\'angle
+    TxHeader.ExtId = 0;
+    TxHeader.IDE = CAN_ID_STD;
+    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.DLC = 2; // 2 octets de données
+    TxHeader.TransmitGlobalTime = DISABLE;
+
+    TxData[0] = angle; // Angle en degrés (0-90)
+    TxData[1] = sign;  // Sens de rotation
+
+    if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
+```
+
+# TP 5 : Intégration du Système Complet
+
+## Objectif
+Fusionner les briques I2C, UART, CAN et REST pour obtenir un système connecté complet :
+1. Le STM32 lit la température (BMP280).
+2. Il pilote l\'ouverture d\'une vanne (Moteur CAN) proportionnellement à la température (`Angle = (Temp - Cible) * K`).
+3. Le Raspberry Pi interroge le STM32 via UART et expose les données sur une API REST.
+
+## Architecture Logicielle (STM32)
+Pour assurer le temps réel, nous avons banni les fonctions bloquantes (`HAL_Delay`) de la boucle principale.
+
+**Boucle principale non-bloquante :**
+```c
+  while (1)
+  {
+    // 1. Traitement des commandes UART (si drapeau levé par l\'ISR)
+    if (cmdReceived) {
+        ProcessCommand();
+        cmdReceived = 0;
+    }
+
+    // 2. Tâche périodique (10Hz) : Lecture Capteur + Asservissement Moteur
+    if (HAL_GetTick() - lastTick >= 100) {
+        lastTick = HAL_GetTick();
+
+        // Lecture I2C
+        BMP280_ReadTemperaturePressure(&current_temp, &current_press);
+
+        // Calcul de l\'angle (Loi de commande Proportionnelle)
+        float error = current_temp - TEMP_TARGET; // Mode Refroidissement
+        float calculated_angle = error * K_coeff;
+        
+        // Saturation 0-90°
+        if (calculated_angle < 0) calculated_angle = 0;
+        if (calculated_angle > 90) calculated_angle = 90;
+
+        // Envoi CAN
+        Stepper_SetAngle((uint8_t)calculated_angle, 0);
+    }
+  }
+```
+
+## Architecture Serveur (Raspberry Pi)
+Le serveur utilise `Flask` pour l\'API et `pyserial` pour communiquer avec le STM32. L\'accès au port série est protégé par un `threading.Lock` pour éviter les collisions.
+
+**Extrait du fichier `app.py` (Route GET/POST Température) :**
+```python
+@app.route('/temp/', methods=['POST'])
+def create_temp():
+    """ Demande une nouvelle mesure au STM32 via UART """ 
+    resp = send_stm32_command("GET_T") # Envoie "GET_T", reçoit "T=+24.50_C"
+    
+    # Parsing et stockage
+    val = parse_temp(resp) 
+    new_entry = {"id": len(temp_history), "value": val, "raw": resp}
+    temp_history.append(new_entry)
+    
+    return jsonify(new_entry), 201
+
+@app.route('/scale/<float:val>', methods=['POST'])
+def update_scale(val):
+    """ Met à jour le coefficient K du STM32 """ 
+    cmd = f"SET_K={val:.2f}"
+    resp = send_stm32_command(cmd)
+    return jsonify({"scale": val, "stm32_resp": resp})
+```
+
+## Résultat Final
+Le système fonctionne de manière autonome.
+1. Une requête `POST /scale/10.0` augmente la sensibilité du moteur.
+2. Une requête `POST /temp/` récupère la température actuelle.
+3. Si on chauffe le capteur, le moteur tourne automatiquement.
+
+```
