@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard - STM32 & RPi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-value { font-size: 2.5rem; font-weight: bold; }
+        .refresh-btn { cursor: pointer; transition: transform 0.2s; }
+        .refresh-btn:active { transform: rotate(180deg); }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <h1 class="text-center mb-5">Système de Contrôle Thermique (TP5)</h1>
+
+    <!-- KPI Cards -->
+    <div class="row g-4 mb-4">
+        <!-- Temperature Card -->
+        <div class="col-md-4">
+            <div class="card h-100 border-primary shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span>Température</span>
+                    <span class="refresh-btn" onclick="updateTemp()">&#x21bb;</span>
+                </div>
+                <div class="card-body text-center">
+                    <div id="temp-val" class="card-value text-primary">-- °C</div>
+                    <small class="text-muted" id="temp-time">Dernière maj: Jamais</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pressure Card -->
+        <div class="col-md-4">
+            <div class="card h-100 border-success shadow-sm">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <span>Pression</span>
+                    <span class="refresh-btn" onclick="updatePres()">&#x21bb;</span>
+                </div>
+                <div class="card-body text-center">
+                    <div id="pres-val" class="card-value text-success">-- Pa</div>
+                    <small class="text-muted" id="pres-time">Dernière maj: Jamais</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Motor Control Card -->
+        <div class="col-md-4">
+            <div class="card h-100 border-warning shadow-sm">
+                <div class="card-header bg-warning text-dark">Contrôle Vanne (Moteur)</div>
+                <div class="card-body">
+                    <h5 class="card-title">Angle Actuel: <span id="angle-val">--</span></h5>
+                    <hr>
+                    <label for="scaleInput" class="form-label">Sensibilité (K):</label>
+                    <div class="input-group mb-3">
+                        <input type="number" step="0.1" class="form-control" id="scaleInput" placeholder="Ex: 1.5">
+                        <button class="btn btn-outline-dark" type="button" onclick="updateScale()">Set K</button>
+                    </div>
+                    <small class="text-muted" id="scale-status"></small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="card shadow-sm">
+        <div class="card-header">Historique des Mesures</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Valeur</th>
+                            <th>Raw Data</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table">
+                        <!-- Data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- API Interactions ---
+
+    async function updateTemp() {
+        try {
+            // POST to trigger new measurement
+            const response = await fetch('/temp/', { method: 'POST' });
+            const data = await response.json();
+            
+            document.getElementById('temp-val').innerText = data.value + ' °C';
+            document.getElementById('temp-time').innerText = new Date(data.timestamp * 1000).toLocaleTimeString();
+            addToHistory(data.id, 'Température', data.value, data.raw, data.timestamp);
+            updateAngle(); // Angle depends on Temp
+        } catch (error) {
+            console.error('Error fetching temp:', error);
+        }
+    }
+
+    async function updatePres() {
+        try {
+            const response = await fetch('/pres/', { method: 'POST' });
+            const data = await response.json();
+            
+            document.getElementById('pres-val').innerText = data.value + ' Pa';
+            document.getElementById('pres-time').innerText = new Date(data.timestamp * 1000).toLocaleTimeString();
+            addToHistory(data.id, 'Pression', data.value, data.raw, data.timestamp);
+        } catch (error) {
+            console.error('Error fetching pres:', error);
+        }
+    }
+
+    async function updateAngle() {
+        try {
+            const response = await fetch('/angle/');
+            const data = await response.json();
+            document.getElementById('angle-val').innerText = data.angle_raw;
+        } catch (error) {
+            console.error('Error fetching angle:', error);
+        }
+    }
+
+    async function updateScale() {
+        const kVal = document.getElementById('scaleInput').value;
+        if (!kVal) return;
+
+        try {
+            const response = await fetch('/scale/' + kVal, { method: 'POST' });
+            const data = await response.json();
+            document.getElementById('scale-status').innerText = `K mis à jour: ${data.scale} (Resp: ${data.stm32_resp})`;
+            updateAngle(); // Refresh angle as K changed
+        } catch (error) {
+            console.error('Error setting scale:', error);
+        }
+    }
+
+    async function getInitialScale() {
+        try {
+            const response = await fetch('/scale/');
+            const data = await response.json();
+            document.getElementById('scaleInput').value = data.scale;
+        } catch (error) { console.error(error); }
+    }
+
+    // --- UI Helpers ---
+
+    function addToHistory(id, type, val, raw, timestamp) {
+        const table = document.getElementById('history-table');
+        const row = table.insertRow(0); // Add to top
+        row.innerHTML = `
+            <td>${id}</td>
+            <td>${type}</td>
+            <td><strong>${val}</strong></td>
+            <td><code>${raw}</code></td>
+            <td>${new Date(timestamp * 1000).toLocaleTimeString()}</td>
+        `;
+        
+        // Keep only last 10 rows
+        if (table.rows.length > 10) {
+            table.deleteRow(10);
+        }
+    }
+
+    // --- Init ---
+    window.onload = function() {
+        getInitialScale();
+        updateTemp();
+        updatePres();
+        updateAngle();
+    };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

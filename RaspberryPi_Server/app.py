@@ -1,9 +1,13 @@
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, render_template
 import serial
 import time
 import threading
 
 app = Flask(__name__)
+
+@app.route('/')
+def dashboard():
+    return render_template('index.html')
 
 # --- Serial Configuration ---
 serial_lock = threading.Lock()
